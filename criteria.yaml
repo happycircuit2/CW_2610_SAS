@@ -1,0 +1,84 @@
+# SAS 임계값 단일 기준. 변경 시 version·updated_at 갱신. 코드에 임계값 하드코딩 금지.
+version: "2.0"
+updated_at: "2026-10-26"
+
+universe:
+  disclosure_ready_min_pct: 95
+  exclude_kinds: [spac, preferred, reit, foreign, dr, investment_company, soc]
+  financials_ksic_codes: ["64", "66"]
+  financials_nonfinancial_structure_override: true
+
+normalization:
+  quarters: 16
+  quarters_extra_for_split_adjust: 1
+  annual_years: 5
+  fs_div_bridge_max_gap_pct: 0.5
+  q4_shares_ratio_min: 0.6
+  q4_shares_ratio_max: 1.7
+  shares_jump_ratio_min: 0.67
+  shares_jump_ratio_max: 1.50
+
+screening:
+  c:
+    both_quarters_profitable: true
+    eps_yoy_min_pct: 25
+    op_income_both_profitable: true
+    op_income_yoy_min_pct: 0
+    sales_yoy_min_pct: 25
+    allow_sales_acceleration: true
+    financials_exempt_op_income: true
+    financials_sales: revenue_then_component_sum
+  a:
+    annual_eps_increase_years: 3
+    eps_cagr_min_pct: 25
+    roe_min_pct: 17
+    ocf_must_be_positive: true
+    financials_exempt_ocf: true
+    min_fiscal_years: 4
+    insufficient_history: fail
+  pegy:
+    max_pegy: 1.0
+    g_must_be_positive: true
+    high_growth_flag_pct: 50
+    stale_price_max_trading_days: 10
+    stale_price_blocks_pass: true
+    dividend_source_priority: [dart_alotMatter_api, naver_krx_crawler_fallback]
+
+flags:
+  review: [eps_basis_check, shares_jump, quarter_sum_mismatch, stale_price_or_quarter, q4_shares_fallback, quant_gate_capped]
+  caution: [small_base, high_growth, turnaround, sales_accelerated_pass, sales_proxy_used, fs_div_bridged, dividend_fallback_used, evidence_weak, ic_nonpositive]
+
+moat:
+  tax_rate: 0.25
+  excess_cash_sales_pct: 2
+  ke:
+    tier_bounds: [33.3, 66.7]
+    tier_values_pct: [8.5, 10.0, 11.5]
+    default_pct: 10.0
+  kd:
+    clamp_min_pct: 2
+    clamp_max_pct: 12
+    default_pct: 12
+  quant_gate:
+    fiscal_years: 5
+    rule1_recent_avg_years: 3
+    rule2_positive_years_min: 3
+    rule2_recent_consecutive: 2
+    on_fail_cap: narrow
+    on_insufficient_cap: narrow
+  evidence:
+    strict_substring_quote_invalidation: false
+    keyword_match_min_ratio: 0.25
+    numeric_match_min_ratio: 0.5
+  business_text_max_chars: 120000
+
+council:
+  provider: gemini        # gemini | anthropic | dual (환경변수 MOAT_COUNCIL_PROVIDER 우선)
+  model: ""               # 비우면 환경변수 MOAT_COUNCIL_MODEL 사용. 기본값 미확정(DECISIONS #8)
+  reasoning: high
+
+dart:
+  cache_ttl_days: {financials: 90, company: 30}
+  fatal_status_codes: ["010", "011", "012", "020", "101", "800", "901"]
+  timeout_sec: 15
+  download_timeout_sec: 30
